@@ -1,11 +1,13 @@
 import sys, os
-sys.path.append("C:\\Users\\tfischle\\GitHub\\DtkTrunk\\Regression\\shared_embedded_py_scripts")
-import dtk_FileTools as dft
-import dtk_FileSupport as support
-import numpy
+sys.path.append("C:\\Users\\tfischle\\Github\\DtkTrunk\\Scripts\\serialization")
+import dtkFileTools as dft
+import dtkFileSupport as support
 import random
 import matplotlib.pyplot as plt
+import collections
 
+
+counter =0
 
 def getNextSuid(handle):
     sim = handle.simulation
@@ -79,14 +81,20 @@ def removeIndividuals(nodes, number, handle):
         handle.nodes[n] = node
     write(handle)
 
-
 def setIndividualProperty(individual_idx, prop_value, handle):
     node = handle.nodes[0]
     for idx in individual_idx:
         for prop in prop_value:
-            node.individualHumans[idx][prop] = prop_value[prop]
+            node['individualHumans'][idx][prop] = prop_value[prop]
     handle.nodes[0] = node
-    write(handle)
+
+
+def setIndividualPropertyInfections(individual_idx, prop_value, handle):
+    node = handle.nodes[0]
+    for idx in individual_idx:
+        for prop in prop_value:
+            node['individualHumans'][idx]['infections'][0][prop] = prop_value[prop]
+    handle.nodes[0] = node
 
 
 def generatePopulation(prop_value, handle):
@@ -119,12 +127,30 @@ def generatePopulationPyramid():
 
     return age_distr
 
+
+def find(name, handle, currentlevel):
+    global counter
+    if name == handle:
+        print (counter, "  Found in: ", currentlevel)
+        counter +=1
+        return
+    if type(handle) is str or not isinstance(handle, collections.Iterable):
+        return
+
+    for d in handle:
+        level =  currentlevel + " " + d if type(d) is str else currentlevel
+        find(name, d, level)    # list or keys of a dict, works in all cases but misses objects in dicts
+        if isinstance(handle,dict):
+            find(name, handle[d], level)    # check if string is key for a dict
+
+
+
 if __name__ == "__main__":
-     path = "C:/Users/tfischle/GitHub/DtkTrunk/Regression/Serialization/1300_comparison_with_report_data/output/"
-     serialized_file = "state-00023.dtk"
+     path = "C:/Users/tfischle/GitHub/DtkTrunk/Regression/TB/8_TB_BirthTriggeredIV_BCG/output"
+     serialized_file = "state-00500.dtk"
      dtk = dft.read(path + '/' + serialized_file)
 
-     #setIndividualProperty([1,2,3], {"m_is_infected":True}, dtk)
+     #setIndividualProperty([1], {"m_is_active":False}, dtk)
      #addIndividuals_fixedProp([0], 15, {"m_is_infected":True}, dtk)
      #removeIndividuals([0], 3, dtk)
 
@@ -134,6 +160,17 @@ if __name__ == "__main__":
      #              {"m_age": 10, "m_gender": 1, "m_is_infected":True},
      #              {"m_age": 47, "m_gender": 0, "m_is_infected":True}]
 
-     age_distr = generatePopulationPyramid()
-     generatePopulation(age_distr, dtk)
+     #age_distr = generatePopulationPyramid()
+     #generatePopulation(age_distr, dtk)
+     find("duration", dtk.nodes, "dtk.nodes")
+
+     setIndividualPropertyInfections(range(0,100), {"duration":100, "m_is_active":False, "incubation_timer":123}, dtk)
      write(dtk)
+
+     hum = 0
+     for n in dtk.nodes:
+        for h in n.individualHumans:
+            for inf in h.infections:
+                print ("hum: ", hum, "   dur: ", inf.duration, "   active: ", inf.m_is_active, "   inc_t: ", inf.incubation_timer)
+            hum+=1
+
