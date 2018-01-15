@@ -116,12 +116,9 @@ def generatePopulationPyramid():
 
     fig, axes = plt.subplots(ncols=2, sharey=True)
     axes[0].hist(x1, bins)
-    axes[0].set_title("gender==0")
-    axes[0].set_xlabel("age")
-    axes[0].set_ylabel("population")
+    axes[0].set(xlabel="Age-Group", ylabel="Population", title = "gender==0")
     axes[1].hist(x2, bins, color='red')
-    axes[1].set_title("gender==1")
-    axes[1].set_xlabel("age")
+    axes[1].set(xlabel="Age-Group", title = "gender==1")
     axes[0].invert_xaxis()
 
     plt.show()
