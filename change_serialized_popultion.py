@@ -25,24 +25,21 @@ def addIndividual(node_id, properties, handle):
     :return:
 
     Adds individuals to a node. The properties of each individual must be given as a list of dictionaries.
-    For each entry in the property list a individual is added.
+    For each entry in the property list an individual is added.
     '''
-    node = handle.nodes[0]
-    temp_list = []
+    node = handle.nodes[node_id]
     for individual_props in properties:
-        copy_ind = support.SerialObject(handle.nodes[node_id].individualHumans[0])
+        copy_ind = support.SerialObject(handle.nodes[0].individualHumans[0])
         suid = getNextSuid(handle)
         print ("suid: ", suid)
         copy_ind.suid['id']=suid
         for prop in individual_props:
             copy_ind[prop] = individual_props[prop]
-        temp_list.append(copy_ind)
-    node.individualHumans.extend(temp_list)
-    handle.nodes[0] = node
-    write(handle)
+        node.individualHumans.append(copy_ind)
+    handle.nodes[node_id] = node
 
 
-def addIndividuals_fixedProp(nodes, number, properties, handle):
+def addIndividuals_sameProperties(node_id, number, properties, handle):
     '''
     :param nodes: Node
     :param number: number of indiviudals
@@ -51,18 +48,16 @@ def addIndividuals_fixedProp(nodes, number, properties, handle):
 
     Adds a number of individuals with the same properties to a list of nodes.
     '''
-    for n in nodes:
-        for i in range(0,number):
-            copy_ind = support.SerialObject(handle.nodes[n].individualHumans[0])
-            suid = getNextSuid(handle)
-            print("suid: ", suid)
-            copy_ind.suid['id'] = suid
-            for prop in properties:
-                copy_ind[prop] = properties[prop]
-            node = handle.nodes[0]
-            node.individualHumans.append(copy_ind)
-            handle.nodes[0] = node
-    write(handle)
+    node = handle.nodes[node_id]
+    for i in range(0,number):
+        copy_ind = support.SerialObject(handle.nodes[0].individualHumans[0])
+        suid = getNextSuid(handle)
+        print("suid: ", suid)
+        copy_ind.suid['id'] = suid
+        for prop in properties:
+            copy_ind[prop] = properties[prop]
+        node.individualHumans.append(copy_ind)
+        handle.nodes[node_id] = node
 
 def changeSusceptibility(node_ids, number, properties, handle):
     for n in node_ids:
@@ -107,7 +102,7 @@ def write(handle):
 def generatePopulationPyramid():
     bins = [0, 10, 20, 30, 40, 50, 60, 70]
     age_distr = []
-    number_of_people_in_bin = 100
+    number_of_people_in_bin = 400
     for idx, bin in enumerate(bins[1:],1):
         for num in range(0,number_of_people_in_bin):
             m_age = random.randint(bins[idx-1],bins[idx]-1)             # bins[idx-1] <= x < bins[idx]
@@ -121,8 +116,14 @@ def generatePopulationPyramid():
 
     fig, axes = plt.subplots(ncols=2, sharey=True)
     axes[0].hist(x1, bins)
+    axes[0].set_title("gender==0")
+    axes[0].set_xlabel("age")
+    axes[0].set_ylabel("population")
     axes[1].hist(x2, bins, color='red')
+    axes[1].set_title("gender==1")
+    axes[1].set_xlabel("age")
     axes[0].invert_xaxis()
+
     plt.show()
 
     return age_distr
@@ -151,7 +152,7 @@ if __name__ == "__main__":
      dtk = dft.read(path + '/' + serialized_file)
 
      #setIndividualProperty([1], {"m_is_active":False}, dtk)
-     #addIndividuals_fixedProp([0], 15, {"m_is_infected":True}, dtk)
+     #addIndividuals_sameProperties(0, 15, {"m_is_infected":True}, dtk)
      #removeIndividuals([0], 3, dtk)
 
      #changeSusceptibility([0], 1, {"age":1234}, dtk)
@@ -160,17 +161,19 @@ if __name__ == "__main__":
      #              {"m_age": 10, "m_gender": 1, "m_is_infected":True},
      #              {"m_age": 47, "m_gender": 0, "m_is_infected":True}]
 
-     #age_distr = generatePopulationPyramid()
-     #generatePopulation(age_distr, dtk)
-     find("duration", dtk.nodes, "dtk.nodes")
-
-     setIndividualPropertyInfections(range(0,100), {"duration":100, "m_is_active":False, "incubation_timer":123}, dtk)
+     age_distr = generatePopulationPyramid()
+     generatePopulation(age_distr, dtk)
      write(dtk)
 
-     hum = 0
-     for n in dtk.nodes:
-        for h in n.individualHumans:
-            for inf in h.infections:
-                print ("hum: ", hum, "   dur: ", inf.duration, "   active: ", inf.m_is_active, "   inc_t: ", inf.incubation_timer)
-            hum+=1
+     # find("duration", dtk.nodes, "dtk.nodes")
+     #
+     # setIndividualPropertyInfections(range(0,100), {"duration":100, "m_is_active":False, "incubation_timer":123}, dtk)
+     # write(dtk)
+     #
+     # hum = 0
+     # for n in dtk.nodes:
+     #    for h in n.individualHumans:
+     #        for inf in h.infections:
+     #            print ("hum: ", hum, "   dur: ", inf.duration, "   active: ", inf.m_is_active, "   inc_t: ", inf.incubation_timer)
+     #        hum+=1
 
