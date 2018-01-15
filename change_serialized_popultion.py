@@ -59,37 +59,33 @@ def addIndividuals_sameProperties(node_id, number, properties, handle):
         node.individualHumans.append(copy_ind)
         handle.nodes[node_id] = node
 
-def changeSusceptibility(node_ids, number, properties, handle):
-    for n in node_ids:
-        node = handle.nodes[n]
-        for num in range(0,number):
-            for prop in properties:
-                node.individualHumans[num].susceptibility[prop] = properties[prop]
-            handle.nodes[n] = node
-    write(handle)
+def changeSusceptibility(node_id, number, properties, handle):
+    node = handle.nodes[node_id]
+    for num in range(0,number):
+        for prop in properties:
+            node.individualHumans[num].susceptibility[prop] = properties[prop]
+        handle.nodes[node_id] = node
 
 
-def removeIndividuals(nodes, number, handle):
-    for n in nodes:
-        node = handle.nodes[n]
-        del node.individualHumans[0:number]
-        handle.nodes[n] = node
-    write(handle)
+def removeIndividuals(node_id, number, handle):
+    node = handle.nodes[node_id]
+    del node.individualHumans[0:number]
+    handle.nodes[node_id] = node
 
-def setIndividualProperty(individual_idx, prop_value, handle):
-    node = handle.nodes[0]
+def setIndividualProperty(node_id, individual_idx, prop_value, handle):
+    node = handle.nodes[node_id]
     for idx in individual_idx:
         for prop in prop_value:
             node['individualHumans'][idx][prop] = prop_value[prop]
-    handle.nodes[0] = node
+    handle.nodes[node_id] = node
 
 
-def setIndividualPropertyInfections(individual_idx, prop_value, handle):
-    node = handle.nodes[0]
+def setIndividualPropertyInfections(node_id, individual_idx, prop_value, handle):
+    node = handle.nodes[node_id]
     for idx in individual_idx:
         for prop in prop_value:
             node['individualHumans'][idx]['infections'][0][prop] = prop_value[prop]
-    handle.nodes[0] = node
+    handle.nodes[node_id] = node
 
 
 def generatePopulation(prop_value, handle):
@@ -120,7 +116,6 @@ def generatePopulationPyramid():
     axes[1].hist(x2, bins, color='red')
     axes[1].set(xlabel="Age-Group", title = "gender==1")
     axes[0].invert_xaxis()
-
     plt.show()
 
     return age_distr
@@ -148,11 +143,17 @@ if __name__ == "__main__":
      serialized_file = "state-00500.dtk"
      dtk = dft.read(path + '/' + serialized_file)
 
-     #setIndividualProperty([1], {"m_is_active":False}, dtk)
+     #setIndividualProperty(0, [1,3], {"m_is_active":False}, dtk)
      #addIndividuals_sameProperties(0, 15, {"m_is_infected":True}, dtk)
+     #write(dtk)
+
      #removeIndividuals([0], 3, dtk)
+     #write(dtk)
+
 
      #changeSusceptibility([0], 1, {"age":1234}, dtk)
+     #write(dtk)
+
 
      # age_distr = [{"m_age":1, "m_gender": 0, "m_is_infected":True},
      #              {"m_age": 10, "m_gender": 1, "m_is_infected":True},
@@ -162,9 +163,11 @@ if __name__ == "__main__":
      generatePopulation(age_distr, dtk)
      write(dtk)
 
+
      # find("duration", dtk.nodes, "dtk.nodes")
-     #
-     # setIndividualPropertyInfections(range(0,100), {"duration":100, "m_is_active":False, "incubation_timer":123}, dtk)
+
+
+     # setIndividualPropertyInfections(0, range(0,100), {"duration":100, "m_is_active":False, "incubation_timer":123}, dtk)
      # write(dtk)
      #
      # hum = 0
