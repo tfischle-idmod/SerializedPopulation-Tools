@@ -59,17 +59,17 @@ def addIndividuals_sameProperties(node_id, number, properties, handle):
         node.individualHumans.append(copy_ind)
         handle.nodes[node_id] = node
 
-def changeSusceptibility(node_id, number, properties, handle):
+def changeSusceptibility(node_id, number_of_ind, properties, handle):
     node = handle.nodes[node_id]
-    for num in range(0,number):
+    for num in range(0,number_of_ind):
         for prop in properties:
             node.individualHumans[num].susceptibility[prop] = properties[prop]
         handle.nodes[node_id] = node
 
 
-def removeIndividuals(node_id, number, handle):
+def removeIndividuals(node_id, number_of_ind, handle):
     node = handle.nodes[node_id]
-    del node.individualHumans[0:number]
+    del node.individualHumans[0:number_of_ind]
     handle.nodes[node_id] = node
 
 def setIndividualProperty(node_id, individual_idx, prop_value, handle):
@@ -147,11 +147,11 @@ if __name__ == "__main__":
      #addIndividuals_sameProperties(0, 15, {"m_is_infected":True}, dtk)
      #write(dtk)
 
-     #removeIndividuals([0], 3, dtk)
+     #removeIndividuals(0, 3, dtk)
      #write(dtk)
 
 
-     #changeSusceptibility([0], 1, {"age":1234}, dtk)
+     #changeSusceptibility(0, 1, {"age":1234}, dtk)
      #write(dtk)
 
 
@@ -159,21 +159,18 @@ if __name__ == "__main__":
      #              {"m_age": 10, "m_gender": 1, "m_is_infected":True},
      #              {"m_age": 47, "m_gender": 0, "m_is_infected":True}]
 
-     age_distr = generatePopulationPyramid()
-     generatePopulation(age_distr, dtk)
-     write(dtk)
+     # age_distr = generatePopulationPyramid()
+     # generatePopulation(age_distr, dtk)
+     # write(dtk)
 
 
      # find("duration", dtk.nodes, "dtk.nodes")
 
 
-     # setIndividualPropertyInfections(0, range(0,100), {"duration":100, "m_is_active":False, "incubation_timer":123}, dtk)
-     # write(dtk)
-     #
-     # hum = 0
-     # for n in dtk.nodes:
-     #    for h in n.individualHumans:
-     #        for inf in h.infections:
-     #            print ("hum: ", hum, "   dur: ", inf.duration, "   active: ", inf.m_is_active, "   inc_t: ", inf.incubation_timer)
-     #        hum+=1
+     setIndividualPropertyInfections(0, range(0,100), {"duration":100, "m_is_active":False, "incubation_timer":123}, dtk)
+     write(dtk)
+
+     for idx_human, h in enumerate(dtk.nodes[0].individualHumans):
+        for inf in h.infections:
+            print ("hum: ", idx_human, "   dur: ", inf.duration, "   active: ", inf.m_is_active, "   inc_t: ", inf.incubation_timer)
 
