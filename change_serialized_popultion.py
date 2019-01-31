@@ -5,16 +5,27 @@ import dtkFileSupport as support
 import random
 import matplotlib.pyplot as plt
 import collections
+import utils
+import json
 
 
 
 counter =0
 
-def getNextSuid(handle):
+
+def getNextInfectionSuid(handle):
     sim = handle.simulation
-    suid = sim.individualHumanSuidGenerator['next_suid']
-    sim.individualHumanSuidGenerator['next_suid']['id'] = suid['id'] + sim.individualHumanSuidGenerator['numtasks']
+    suid = sim["infectionSuidGenerator"]['next_suid']
+    sim["infectionSuidGenerator"]['next_suid']['id'] = suid['id'] + sim["infectionSuidGenerator"]['numtasks']
     handle.simulation = sim
+    return suid
+
+
+def getNextIndividualSuid(node_id, handle):
+    node = handle.nodes[node_id]
+    suid = node["m_IndividualHumanSuidGenerator"]['next_suid']
+    node["m_IndividualHumanSuidGenerator"]['id'] = suid['id'] + node["m_IndividualHumanSuidGenerator"]['numtasks']
+    handle.nodes[node_id] = node
     return suid['id']
 
 
@@ -31,8 +42,8 @@ def addIndividual(node_id, properties, handle):
     node = handle.nodes[node_id]
     for individual_props in properties:
         copy_ind = support.SerialObject(handle.nodes[0].individualHumans[0])
-        suid = getNextSuid(handle)
-        print ("suid: ", suid)
+        suid = getNextIndividualSuid(node_id, handle)
+        print("suid: ", suid)
         copy_ind.suid['id']=suid
         for prop in individual_props:
             copy_ind[prop] = individual_props[prop]
@@ -52,7 +63,7 @@ def addIndividuals_sameProperties(node_id, number, properties, handle):
     node = handle.nodes[node_id]
     for i in range(0, number):
         copy_ind = support.SerialObject(handle.nodes[0].individualHumans[0])
-        suid = getNextSuid(handle)
+        suid = getNextIndividualSuid(node_id, handle)
         print("suid: ", suid)
         copy_ind.suid['id'] = suid
         for prop in properties:
@@ -60,12 +71,14 @@ def addIndividuals_sameProperties(node_id, number, properties, handle):
         node.individualHumans.append(copy_ind)
         handle.nodes[node_id] = node
 
+
 def changeSusceptibility(node_id, number_of_ind, properties, handle):
     node = handle.nodes[node_id]
     for num in range(0,number_of_ind):
         for prop in properties:
             node.individualHumans[num].susceptibility[prop] = properties[prop]
         handle.nodes[node_id] = node
+
 
 def removeIndividuals(node_id, number_of_ind, handle):
     node = handle.nodes[node_id]
@@ -90,39 +103,6 @@ def write(handle):
     dft.write(handle,"my_dtk_file.dtk")
 
 
-def createDistribution(parameter, number, fct=1):
-    distribution = []
-    for i in range(number):
-        distribution.append({parameter: fct()})
-    return distribution
-
-
-def generatePopulationPyramid():
-    bins = [0, 10, 20, 30, 40, 50, 60, 70]
-    age_distr = []
-    number_of_people_in_bin = 400
-    for idx, bin in enumerate(bins[1:], 1):
-        for num in range(0,number_of_people_in_bin):
-            m_age = random.randint(bins[idx-1],bins[idx]-1)             # bins[idx-1] <= x < bins[idx]
-            m_gender = random.randint(0,1)
-            age_distr.append({'m_age': m_age, "m_gender":m_gender})
-        mortality = random.normalvariate(0.85, 0.1)
-        number_of_people_in_bin = (int)(number_of_people_in_bin * mortality)  #decreasing with age
-
-    x1 = [age['m_age'] for age in age_distr if age['m_gender']==0]
-    x2 = [age['m_age'] for age in age_distr if age['m_gender'] == 1]
-
-    fig, axes = plt.subplots(ncols=2, sharey=True)
-    axes[0].hist(x1, bins)
-    axes[0].set(xlabel="Age-Group", ylabel="Population", title = "gender==0")
-    axes[1].hist(x2, bins, color='red')
-    axes[1].set(xlabel="Age-Group", title = "gender==1")
-    axes[0].invert_xaxis()
-    plt.show()
-
-    return age_distr
-
-
 def find(name, handle, currentlevel="dtk.nodes"):
     global counter
     if type(handle) is str and name in handle:
@@ -134,7 +114,7 @@ def find(name, handle, currentlevel="dtk.nodes"):
         return
 
     for idx, d in enumerate(handle):
-        level = currentlevel + " " + d if type(d) is str else currentlevel + str(idx)
+        level = currentlevel + " " + d if type(d) is str else currentlevel + "[" + str(idx) + "]"
         find(name, d, level)    # list or keys of a dict, works in all cases but misses objects in dicts
         if isinstance(handle,dict):
             find(name, handle[d], level)    # check if string is key for a dict
@@ -161,6 +141,7 @@ def printParameters(handle, currentlevel="dtk.nodes"):
 
 
 def setIndividualProperty(node_id, individual_idx, prop_value, handle):
+    """change key value of some individual properties, given as a list of indices."""
     node = handle.nodes[node_id]
     for idx in individual_idx:
         for prop in prop_value:
@@ -169,16 +150,24 @@ def setIndividualProperty(node_id, individual_idx, prop_value, handle):
 
 
 def setPropertyValues_Individual(node_id, param_value, handle):
+    """ length of param_value must be equal to number of individuals.
+     Every entry in paramvalue is a dict wit one or several key-value pairs."""
     node = handle.nodes[node_id]
     for param, ind in zip(param_value, node['individualHumans']):
-        for p in param:
-            ind[p] = param[p]
+        ind.update(param)
     handle.nodes[node_id] = node
 
 
 def getPropertyValues_Individual(node_id, handle, property):
+    """returns list values for property property"""
     node = handle.nodes[node_id]
     return [ind[property] for ind in node.individualHumans]
+
+
+def getIndividualsWithProperty(node_id, handle, fct=lambda ind: True):
+    """ get all individuals with a certain condition. condition is given by fct."""
+    individuals = handle.nodes[node_id].individualHumans
+    return [ind for ind in individuals if fct(ind)]
 
 
 def listProperties(node_id, handle):
@@ -189,8 +178,37 @@ def listProperties(node_id, handle):
             b.add(i)
     return b
 
+
+def createInfection(type, suid, kwargs={}):
+    infection = None
+    if type == "Generic":
+        with open("infection.json", "r") as file:
+            infection = json.load(file)
+    elif type == "Malaria":
+        pass
+    else:
+        print("Infection of type" + type + " does not exist")
+
+    infection["suid"] = suid
+    infection.update(kwargs.items())
+
+    return infection
+
+
+def addInfectionToIndividuals(node_id, handle, infection, fct=lambda ind: True):
+    node = handle.nodes[node_id]
+    for individual in [n for n in node.individualHumans if fct(n)]:
+        print(individual)
+        infection["suid"] = getNextInfectionSuid(dtk)
+        individual.infections.append(infection)
+        print(individual)
+    handle.nodes[node_id] = node
+
+
+
 def myRandom():
     return random.gauss(0, 1)
+
 
 def myRandom2():
     return random.randint(0, 3)
@@ -207,24 +225,56 @@ if __name__ == "__main__":
 
     #     print (listProperties(0, dtk))
 
-#    print(find("gender", dtk.nodes[0]))
+    # print(find("infection", dtk.nodes[0]))
+
+
+
+
+    # print(getPropertyValues_Individual(0, dtk, "m_age"))
+    #
+    #
+    # infected_ind = getIndividualsWithProperty(0, dtk, lambda ind: ind.infections)
+    #
+    # infection_init = {"duration": 123, "incubation_timer": 456}
+    #
+    # new_infection1 = createInfection("Generic", getNextInfectionSuid(dtk), infection_init)
+    # print(new_infection1)
+    #
+    # new_infection2 = createInfection("Generic", getNextInfectionSuid(dtk), infection_init)
+    # print(new_infection2)
+    #
+    # addInfectionToIndividuals(0, dtk, new_infection1, lambda ind: ind["m_age"] > 43500)
+
+
+
+    # for ind in infected_ind:
+    #     print("Individual: " + str(ind["suid"]))
+    #     print(ind.infections)
+    #     print()
+    #
+    # for infection in infected_ind[0].infections:
+    #     print(infection)
+    #
+    # infection = infected_ind[0].infections[0]
+    #
+    # with open("infection.json", "w") as file:
+    #     json.dump(infection, file)
 
 #   print(printParameters(dtk.nodes))
 
 #    temp = createDistribution("m_age", len(dtk.nodes[0].individualHumans), random.gauss)
-
-    temp = createDistribution("m_gender", len(dtk.nodes[0].individualHumans), myRandom2)
-
+    temp = utils.createDistribution("m_gender", len(dtk.nodes[0].individualHumans), myRandom2)
     print(temp)
 
     setPropertyValues_Individual(0, temp, dtk)
 
-    age = getPropertyValues_Individual(0, dtk, "m_gender")
+    print(getPropertyValues_Individual(0, dtk, "m_gender"))
 
-    plt.hist(age, bins=30)
-    plt.ylabel('Probability')
+#    age = getPropertyValues_Individual(0, dtk, "m_gender")
 
-    plt.show()
+#    plt.hist(age, bins=30)
+#    plt.ylabel('Probability')
+#   plt.show()
 
     #setIndividualProperty(0, [1,3], {"m_is_active":False}, dtk)
     #addIndividuals_sameProperties(0, 15, {"m_is_infected":True}, dtk)
