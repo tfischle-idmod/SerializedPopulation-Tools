@@ -1,4 +1,4 @@
-import sys, os
+import sys
 sys.path.append("C:\\Users\\tfischle\\Github\\DtkTrunk_master\\Scripts\\serialization")
 import dtkFileTools as dft
 import dtkFileSupport as support
@@ -206,7 +206,7 @@ def addInfectionToIndividuals(node_id, handle, infection, fct=lambda ind: True):
 
 
 
-def myRandom():
+def randomGauss():
     return random.gauss(0, 1)
 
 
@@ -214,10 +214,15 @@ def myRandom2():
     return random.randint(0, 3)
 
 
+path = "C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop"
+serialized_file = "state-00015.dtk"
+dtk = dft.read(path + '/' + serialized_file)
+
+
 if __name__ == "__main__":
-    path = "C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop"
-    serialized_file = "state-00015.dtk"
-    dtk = dft.read(path + '/' + serialized_file)
+#    path = "C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop"
+#    serialized_file = "state-00015.dtk"
+ #   dtk = dft.read(path + '/' + serialized_file)
 
     properties = getPropertyValues_Individual(0, dtk, "m_gender")
 #    plt.plot(properties, "+")
@@ -262,7 +267,7 @@ if __name__ == "__main__":
 
 #   print(printParameters(dtk.nodes))
 
-#    temp = createDistribution("m_age", len(dtk.nodes[0].individualHumans), random.gauss)
+#    temp = createDistribution("m_age", len(dtk.nodes[0].individualHumans), randomGauss)
     temp = utils.createDistribution("m_gender", len(dtk.nodes[0].individualHumans), myRandom2)
     print(temp)
 
