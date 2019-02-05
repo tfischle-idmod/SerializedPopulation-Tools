@@ -8,6 +8,7 @@ import collections
 import utils
 import json
 import scipy.stats
+import collections
 
 
 
@@ -162,7 +163,7 @@ def setPropertyValues_Individual(node_id, param_value, handle):
 def getPropertyValues_Individual(node_id, handle, property):
     """returns list values for property property"""
     node = handle.nodes[node_id]
-    return [ind[property] for ind in node.individualHumans]
+    return [ len(ind[property]) if isinstance(ind[property], collections.Iterable) else ind[property] for ind in node.individualHumans ]
 
 
 def getIndividualsWithProperty(node_id, handle, fct=lambda ind: True):
@@ -234,7 +235,8 @@ if __name__ == "__main__":
 #    serialized_file = "state-00015.dtk"
  #   dtk = dft.read(path + '/' + serialized_file)
 
-    properties = getPropertyValues_Individual(0, dtk, "m_gender")
+    properties = getPropertyValues_Individual(0, dtk, "infections")
+    print(properties)
 #    plt.plot(properties, "+")
 #    plt.show()
 

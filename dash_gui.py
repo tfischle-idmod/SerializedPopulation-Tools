@@ -2,19 +2,17 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
-import change_serialized_popultion
+import change_serialized_population
 import utils
 
 individidual_labels = [
                 {'label': 'age', 'value': 'm_age'},
-                {'label': 'gender', 'value': 'm_gender'}
+                {'label': 'gender', 'value': 'm_gender'},
+                {'label': 'infections', 'value': 'infections'}
             ]
 
 # the values are functions from change_serialized_popultion
-distributions_label = [
-                {'label': 'gaussian', 'value': 'randomGauss'},
-                {'label': 'uniform', 'value': 'myRandom2'}
-]
+distributions_label = change_serialized_population.getAvailableDistributions()
 
 selected_property = None
 selected_distribution = None
@@ -46,6 +44,27 @@ app.layout = html.Div([
 ])
 
 @app.callback(
+    dash.dependencies.Output('graph-with-slider', 'figure'),
+    [dash.dependencies.Input('myDropdown', 'value')])
+def update_output(value):
+    global selected_property
+    if not value:
+        return {}
+    selected_property = value
+    ind_values = change_serialized_population.getPropertyValues_Individual(0, change_serialized_population.dtk, value)
+    trace = [go.Histogram(x=ind_values)]
+
+    return {
+        'data': trace,
+        'layout': go.Layout(
+                title=value,
+                bargap=0.2,
+                bargroupgap=0.1
+        )
+    }
+
+
+@app.callback(
     dash.dependencies.Output('graph-output-new', 'figure'),
     [dash.dependencies.Input('distributions', 'value')])
 def update_output(value):
@@ -55,10 +74,16 @@ def update_output(value):
     if not value or not selected_property:
         return {}
 
-    fct = getattr(change_serialized_popultion, value)
-    selected_distribution = utils.createDistribution(selected_property, len(change_serialized_popultion.dtk.nodes[0].individualHumans), fct)
-    change_serialized_popultion.setPropertyValues_Individual(0, selected_distribution, change_serialized_popultion.dtk)
-    new_ind_values = change_serialized_popultion.getPropertyValues_Individual(0, change_serialized_popultion.dtk, selected_property )
+    selected_distribution = []
+    fct = getattr(change_serialized_population, value)
+    if selected_property == 'infections':
+        new_infection = change_serialized_population.createInfection("Generic", change_serialized_population.getNextInfectionSuid(change_serialized_population.dtk))
+        change_serialized_population.addInfectionToIndividuals(0, change_serialized_population.dtk, new_infection, lambda ind: ind["m_age"] > 43500)
+    else:
+        selected_distribution = utils.createDistribution(selected_property, len(change_serialized_population.dtk.nodes[0].individualHumans), fct)
+        change_serialized_population.setPropertyValues_Individual(0, selected_distribution, change_serialized_population.dtk)
+
+    new_ind_values = change_serialized_population.getPropertyValues_Individual(0, change_serialized_population.dtk, selected_property)
     trace = [go.Histogram(x=new_ind_values)]
 
     return {
@@ -72,24 +97,6 @@ def update_output(value):
 
 
 @app.callback(
-    dash.dependencies.Output('graph-with-slider', 'figure'),
-    [dash.dependencies.Input('myDropdown', 'value')])
-def update_output(value):
-    global selected_property
-    selected_property = value
-    ind_values = change_serialized_popultion.getPropertyValues_Individual(0, change_serialized_popultion.dtk, value)
-    trace = [go.Histogram(x=ind_values)]
-
-    return {
-        'data': trace,
-        'layout': go.Layout(
-                title=value,
-                bargap=0.2,
-                bargroupgap=0.1
-        )
-    }
-
-@app.callback(
     dash.dependencies.Output('container-button-basic', 'children'),
     [dash.dependencies.Input('button', 'n_clicks')],
     [dash.dependencies.State('input-box', 'value')])
@@ -97,7 +104,7 @@ def update_output(n_clicks, value):
     global selected_distribution
     if not selected_distribution:
         return ""
-    change_serialized_popultion.write(change_serialized_popultion.dtk)
+    change_serialized_population.write(change_serialized_population.dtk)
     return 'The input value was "{}" and the button has been clicked {} times'.format(
         value,
         n_clicks
