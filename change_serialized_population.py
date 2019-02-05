@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import collections
 import utils
 import json
+import scipy.stats
 
 
 
@@ -170,13 +171,9 @@ def getIndividualsWithProperty(node_id, handle, fct=lambda ind: True):
     return [ind for ind in individuals if fct(ind)]
 
 
-def listProperties(node_id, handle):
+def getListIndividualProperties(node_id, handle):
     node = handle.nodes[node_id]
-    b = set()
-    for ind in node.individualHumans:
-        for i in ind:
-            b.add(i)
-    return b
+    return [prop for prop in node.individualHumans[0]]
 
 
 def createInfection(type, suid, kwargs={}):
@@ -205,13 +202,26 @@ def addInfectionToIndividuals(node_id, handle, infection, fct=lambda ind: True):
     handle.nodes[node_id] = node
 
 
+def getAvailableDistributions():
+    distributions = [
+        {'label': 'gaussian_1000_10', 'value': 'randomGauss'},
+        {'label': 'constant_1500', 'value': 'constantDistribution'},
+        {'label': 'poisson', 'value': 'PoissonDistribution'}
+    ]
+    return distributions
+
 
 def randomGauss():
-    return random.gauss(0, 1)
+    return random.gauss(1000, 10)
 
+def PoissonDistribution():
+    return int(scipy.stats.poisson.rvs(mu=100,loc=100, size=1)[0])
 
 def myRandom2():
     return random.randint(0, 3)
+
+def constantDistribution():
+    return 1500
 
 
 path = "C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop"
