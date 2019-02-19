@@ -9,18 +9,29 @@ import utils
 import json
 import scipy.stats
 import collections
+import pathlib
 
 
 
 counter =0
+nextInfectionSuid_initialized = False
+nextInfectionSuid_suid = None
+dtk = None
 
 
 def getNextInfectionSuid(handle):
+    global nextInfectionSuid_suid
+    global nextInfectionSuid_initialized
     sim = handle.simulation
-    suid = sim["infectionSuidGenerator"]['next_suid']
-    sim["infectionSuidGenerator"]['next_suid']['id'] = suid['id'] + sim["infectionSuidGenerator"]['numtasks']
-    handle.simulation = sim
-    return suid
+
+    if not nextInfectionSuid_initialized:
+        nextInfectionSuid_suid = sim["infectionSuidGenerator"]['next_suid']
+#        sim["infectionSuidGenerator"]['next_suid']['id'] = nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
+        nextInfectionSuid_initialized = True
+    else:
+        nextInfectionSuid_suid['id'] = nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
+
+    return nextInfectionSuid_suid
 
 
 def getNextIndividualSuid(node_id, handle):
@@ -102,6 +113,10 @@ def generatePopulation(prop_value, handle):
 
 def write(handle):
     handle.compression = dft.NONE
+    sim = handle.simulation
+#    nextInfectionSuid_suid = sim["infectionSuidGenerator"]['next_suid']
+#    sim["infectionSuidGenerator"]['next_suid']['id'] = nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
+    sim["infectionSuidGenerator"]['next_suid']['id'] = getNextInfectionSuid(handle)
     dft.write(handle,"my_dtk_file.dtk")
 
 
@@ -161,10 +176,11 @@ def setPropertyValues_Individual(node_id, param_value, handle):
 
 
 def getPropertyValues_Individual(node_id, handle, property):
-    """returns list values for property property"""
-    node = handle.nodes[node_id]
-    return [ len(ind[property]) if isinstance(ind[property], collections.Iterable) else ind[property] for ind in node.individualHumans ]
-
+    """returns list values for property property or if the property is a list, the length of the list"""
+    if handle:
+        node = handle.nodes[node_id]
+        return [ind[property] for ind in node.individualHumans]
+    return None
 
 def getIndividualsWithProperty(node_id, handle, fct=lambda ind: True):
     """ get all individuals with a certain condition. condition is given by fct."""
@@ -193,13 +209,25 @@ def createInfection(type, suid, kwargs={}):
     return infection
 
 
-def addInfectionToIndividuals(node_id, handle, infection, fct=lambda ind: True):
+def addInfectionToIndividuals_id(node_id, handle, infection, list_ind=None):
     node = handle.nodes[node_id]
+
+    for idx in list_ind:
+        infection["suid"] = getNextInfectionSuid(dtk)
+        node.individualHumans[idx].infections.append(infection)
+        print(node.individualHumans[idx])
+
+    handle.nodes[node_id] = node
+
+def addInfectionToIndividuals_fct(node_id, handle, infection, fct=lambda ind: True):
+    node = handle.nodes[node_id]
+
     for individual in [n for n in node.individualHumans if fct(n)]:
         print(individual)
         infection["suid"] = getNextInfectionSuid(dtk)
         individual.infections.append(infection)
         print(individual)
+
     handle.nodes[node_id] = node
 
 
@@ -215,28 +243,40 @@ def getAvailableDistributions():
 def randomGauss():
     return random.gauss(1000, 10)
 
+
 def PoissonDistribution():
     return int(scipy.stats.poisson.rvs(mu=100,loc=100, size=1)[0])
 
+
 def myRandom2():
     return random.randint(0, 3)
+
 
 def constantDistribution():
     return 1500
 
 
-path = "C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop"
-serialized_file = "state-00015.dtk"
-dtk = dft.read(path + '/' + serialized_file)
+def setFile(file):
+    global dtk
+    dtk = dft.read(file)
+
+
 
 
 if __name__ == "__main__":
 #    path = "C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop"
-#    serialized_file = "state-00015.dtk"
- #   dtk = dft.read(path + '/' + serialized_file)
+    path = pathlib.PureWindowsPath(r"C:\Users\tfischle\Github\DtkTrunk_master\Regression\Generic\13_Generic_Individual_Properties")
+    serialized_file = "state-00015.dtk"
 
-    properties = getPropertyValues_Individual(0, dtk, "infections")
+    setFile(str(path) + '/' + serialized_file)
+
+#    properties = getPropertyValues_Individual(0, dtk, "infections")
+#    print(properties)
+
+    properties = getPropertyValues_Individual(0, dtk, "Properties")
     print(properties)
+    print(find("Transitions", dtk.nodes[0]))
+
 #    plt.plot(properties, "+")
 #    plt.show()
 
@@ -280,12 +320,12 @@ if __name__ == "__main__":
 #   print(printParameters(dtk.nodes))
 
 #    temp = createDistribution("m_age", len(dtk.nodes[0].individualHumans), randomGauss)
-    temp = utils.createDistribution("m_gender", len(dtk.nodes[0].individualHumans), myRandom2)
-    print(temp)
-
-    setPropertyValues_Individual(0, temp, dtk)
-
-    print(getPropertyValues_Individual(0, dtk, "m_gender"))
+#     temp = utils.createDistribution("m_gender", len(dtk.nodes[0].individualHumans), myRandom2)
+#     print(temp)
+#
+#     setPropertyValues_Individual(0, temp, dtk)
+#
+#     print(getPropertyValues_Individual(0, dtk, "m_gender"))
 
 #    age = getPropertyValues_Individual(0, dtk, "m_gender")
 
@@ -313,8 +353,8 @@ if __name__ == "__main__":
     # generatePopulation(age_distr, dtk)
     # write(dtk)
 
-    myhandle = dtk.nodes[0]
-    myhandle["enable_infectivity_reservoir"] = 1
+#    myhandle = dtk.nodes[0]
+#    myhandle["enable_infectivity_reservoir"] = 1
     #dtk.nodes[0] = myhandle
 
     # find("enable_infectivity_reservoir", dtk.nodes, "dtk.nodes")

@@ -4,11 +4,15 @@ import dash_html_components as html
 import plotly.graph_objs as go
 import change_serialized_population
 import utils
+import random
+import collections
 
 individidual_labels = [
                 {'label': 'age', 'value': 'm_age'},
                 {'label': 'gender', 'value': 'm_gender'},
-                {'label': 'infections', 'value': 'infections'}
+                {'label': 'is pregnant', 'value': 'is_pregnant'},
+                {'label': 'is infected', 'value': 'm_is_infected'},
+                {'label': 'infections (counted)', 'value': 'infections'}
             ]
 
 # the values are functions from change_serialized_popultion
@@ -21,6 +25,13 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 app.layout = html.Div([
+    html.Div(
+        children=html.Div([
+            html.H5('Serialized Population')
+        ])
+    ),
+    html.Button('Open Serialized Population', id='button_serialized_pop', value="pressed"),
+    html.Div(id='button_serialized_pop_div', children=''),
     dcc.Graph(id='graph-with-slider'),
     html.Label('Individual Property'),
     dcc.Dropdown(
@@ -43,6 +54,18 @@ app.layout = html.Div([
              children='Enter a value and press submit')
 ])
 
+
+@app.callback(
+    dash.dependencies.Output('button_serialized_pop_div','children'),
+    [dash.dependencies.Input('button', 'n_clicks')])
+def update_output(value):
+    dir = "C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop"
+    serialized_file = "state-00015.dtk"
+    path = dir + '/' + serialized_file
+    change_serialized_population.setFile(path)
+    return 'Loaded file:' + path
+
+
 @app.callback(
     dash.dependencies.Output('graph-with-slider', 'figure'),
     [dash.dependencies.Input('myDropdown', 'value')])
@@ -52,6 +75,8 @@ def update_output(value):
         return {}
     selected_property = value
     ind_values = change_serialized_population.getPropertyValues_Individual(0, change_serialized_population.dtk, value)
+    if ind_values is not None:
+        ind_values = [len(ind) if isinstance(ind, collections.Iterable) else ind for ind in ind_values] # if iterable use length
     trace = [go.Histogram(x=ind_values)]
 
     return {
@@ -77,13 +102,17 @@ def update_output(value):
     selected_distribution = []
     fct = getattr(change_serialized_population, value)
     if selected_property == 'infections':
+#        random_ind = random.sample(range(0,1000), 50)
         new_infection = change_serialized_population.createInfection("Generic", change_serialized_population.getNextInfectionSuid(change_serialized_population.dtk))
-        change_serialized_population.addInfectionToIndividuals(0, change_serialized_population.dtk, new_infection, lambda ind: ind["m_age"] > 43500)
+#        change_serialized_population.addInfectionToIndividuals_id(0, change_serialized_population.dtk, new_infection, random_ind)
+        change_serialized_population.addInfectionToIndividuals_fct(0, change_serialized_population.dtk, new_infection, lambda ind: ind["m_age"] > 43500)
+
     else:
         selected_distribution = utils.createDistribution(selected_property, len(change_serialized_population.dtk.nodes[0].individualHumans), fct)
         change_serialized_population.setPropertyValues_Individual(0, selected_distribution, change_serialized_population.dtk)
 
     new_ind_values = change_serialized_population.getPropertyValues_Individual(0, change_serialized_population.dtk, selected_property)
+    new_ind_values = [len(ind) if isinstance(ind, collections.Iterable) else ind for ind in new_ind_values] # if iterable use length
     trace = [go.Histogram(x=new_ind_values)]
 
     return {
