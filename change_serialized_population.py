@@ -10,6 +10,7 @@ import json
 import scipy.stats
 import collections
 import pathlib
+import difflib
 
 
 
@@ -17,6 +18,31 @@ counter =0
 nextInfectionSuid_initialized = False
 nextInfectionSuid_suid = None
 dtk = None
+
+class dtk_class:
+    def __init__(self, file):
+        self.dtk = dft.read(file)
+        self._nodes = [n for n in dtk.nodes]
+
+    def get_node(self):
+        return self._nodes
+
+    nodes = property(get_node)
+
+    def close(self):
+        for idx in range(len(self._nodes)):
+            self.dtk.nodes[idx] = self._nodes[idx]
+
+    def write(self):
+        self.dtk.compression = dft.NONE
+#        sim = self.dtk.simulation
+        #    nextInfectionSuid_suid = sim["infectionSuidGenerator"]['next_suid']
+        #    sim["infectionSuidGenerator"]['next_suid']['id'] = nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
+        #sim["infectionSuidGenerator"]['next_suid']['id'] = getNextInfectionSuid( self.dtk)
+        dft.write( self.dtk, "my_dtk_file.dtk")
+
+
+
 
 
 def getNextInfectionSuid(handle):
@@ -122,7 +148,7 @@ def write(handle):
 
 def find(name, handle, currentlevel="dtk.nodes"):
     global counter
-    if type(handle) is str and name in handle:
+    if type(handle) is str and difflib.get_close_matches(name, [handle],cutoff=0.6):
         print (counter, "  Found in: ", currentlevel)
         counter +=1
         return
@@ -130,11 +156,19 @@ def find(name, handle, currentlevel="dtk.nodes"):
     if type(handle) is str or not isinstance(handle, collections.Iterable):
         return
 
-    for idx, d in enumerate(handle):
-        level = currentlevel + " " + d if type(d) is str else currentlevel + "[" + str(idx) + "]"
-        find(name, d, level)    # list or keys of a dict, works in all cases but misses objects in dicts
+    for idx, key in enumerate(handle): # key can be a string or on dict/list/..
+        level = currentlevel + "." + key if type(key) is str else currentlevel + "[" + str(idx) + "]"
+        try:
+            tmp = handle[key]
+            if isinstance(tmp, collections.Iterable):
+                find(name, key, level + "[]")
+            else:
+                find(name, key, level)
+        except:
+            find(name, key, level)    # list or keys of a dict, works in all cases but misses objects in dicts
         if isinstance(handle,dict):
-            find(name, handle[d], level)    # check if string is key for a dict
+            find(name, handle[key], level)    # check if string is key for a dict
+
 
 
 def printParameters(handle, currentlevel="dtk.nodes"):
@@ -260,7 +294,8 @@ def setFile(file):
     global dtk
     dtk = dft.read(file)
 
-
+def show(handle):
+    print(json.dumps(handle, indent=4))
 
 
 if __name__ == "__main__":
@@ -273,9 +308,9 @@ if __name__ == "__main__":
 #    properties = getPropertyValues_Individual(0, dtk, "infections")
 #    print(properties)
 
-    properties = getPropertyValues_Individual(0, dtk, "Properties")
-    print(properties)
-    print(find("Transitions", dtk.nodes[0]))
+#    properties = getPropertyValues_Individual(0, dtk, "Properties")
+#    print(properties)
+#    print(find("intervention", dtk.nodes[0]))
 
 #    plt.plot(properties, "+")
 #    plt.show()
@@ -284,8 +319,19 @@ if __name__ == "__main__":
 
     # print(find("infection", dtk.nodes[0]))
 
+#    find("age", dtk.nodes)
+
+    a = dtk_class(str(path) + '/' + serialized_file)
+    show(a.nodes[0].individualHumans[10].m_age)
+
+    for ind in a.nodes[0].individualHumans:
+        ind.m_age = 11
+
+    a.close()
+    a.write()
 
 
+    show(a.nodes[0].individualHumans[10].m_age)
 
     # print(getPropertyValues_Individual(0, dtk, "m_age"))
     #
