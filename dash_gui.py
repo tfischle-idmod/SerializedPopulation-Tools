@@ -6,13 +6,16 @@ import change_serialized_population
 import utils
 import random
 import collections
+import pathlib
 
 individidual_labels = [
                 {'label': 'age', 'value': 'm_age'},
                 {'label': 'gender', 'value': 'm_gender'},
                 {'label': 'is pregnant', 'value': 'is_pregnant'},
                 {'label': 'is infected', 'value': 'm_is_infected'},
-                {'label': 'infections (counted)', 'value': 'infections'}
+                {'label': 'infections (counted)', 'value': 'infections'},
+                {'label': 'Properties (counted)', 'value': 'Properties'},
+                {'label': 'my code', 'value': 'my_code'}
             ]
 
 # the values are functions from change_serialized_popultion
@@ -39,6 +42,7 @@ app.layout = html.Div([
         options=individidual_labels,
         value='m_age'
     ),
+    html.Div(dcc.Input(id='input-query-code', type='text', size=200, value="[ind[\"m_age\"] for ind in change_serialized_population.dtk.nodes[0].individualHumans]")),
     dcc.Graph(id='graph-output-new'),
     html.Label('Distribution'),
     dcc.Dropdown(
@@ -59,25 +63,43 @@ app.layout = html.Div([
     dash.dependencies.Output('button_serialized_pop_div','children'),
     [dash.dependencies.Input('button', 'n_clicks')])
 def update_output(value):
-    dir = "C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop"
+    #dir = pathlib.PureWindowsPath(r"C:/Users/tfischle/Github/DtkTrunk_master/Regression/Generic/71_Generic_RngPerCore_FromSerializedPop")
+    dir = pathlib.PureWindowsPath(r"C:\Users\tfischle\Github\DtkTrunk_master\Regression\Generic\13_Generic_Individual_Properties")
     serialized_file = "state-00015.dtk"
-    path = dir + '/' + serialized_file
+    path = str(dir) + '/' + serialized_file
     change_serialized_population.setFile(path)
     return 'Loaded file:' + path
 
 
 @app.callback(
     dash.dependencies.Output('graph-with-slider', 'figure'),
-    [dash.dependencies.Input('myDropdown', 'value')])
-def update_output(value):
+    [
+        dash.dependencies.Input('myDropdown', 'value'),
+        dash.dependencies.Input('input-query-code', 'value')
+     ])
+def update_output(value, code):
     global selected_property
+    selected_property = value
+
     if not value:
         return {}
-    selected_property = value
-    ind_values = change_serialized_population.getPropertyValues_Individual(0, change_serialized_population.dtk, value)
-    if ind_values is not None:
-        ind_values = [len(ind) if isinstance(ind, collections.Iterable) else ind for ind in ind_values] # if iterable use length
-    trace = [go.Histogram(x=ind_values)]
+    elif value == 'my_code':
+        run_code = str('ind_values = ') + code
+        l = {}
+        try:
+            exec(run_code, globals(), l)    #change local variable, https://stackoverflow.com/questions/1463306/how-does-exec-work-with-locals
+            ind_values = l["ind_values"]
+        except:
+            return{}
+    else:
+        ind_values = change_serialized_population.getPropertyValues_Individual(0, change_serialized_population.dtk, value)
+        if ind_values is not None:
+            ind_values = [len(ind) if isinstance(ind, collections.Iterable) else ind for ind in ind_values] # if iterable use length
+
+    try:
+        trace = [go.Histogram(x=ind_values)]
+    except:
+        return {}
 
     return {
         'data': trace,
@@ -133,7 +155,8 @@ def update_output(n_clicks, value):
     global selected_distribution
     if not selected_distribution:
         return ""
-    change_serialized_population.write(change_serialized_population.dtk)
+    change_serialized_population.dtk.close()
+    change_serialized_population.dtk.write()
     return 'The input value was "{}" and the button has been clicked {} times'.format(
         value,
         n_clicks

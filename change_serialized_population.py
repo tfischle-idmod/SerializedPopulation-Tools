@@ -20,9 +20,12 @@ nextInfectionSuid_suid = None
 dtk = None
 
 class dtk_class:
+
     def __init__(self, file):
+        self.nextInfectionSuid_suid = None
+        self.nextInfectionSuid_initialized = False
         self.dtk = dft.read(file)
-        self._nodes = [n for n in dtk.nodes]
+        self._nodes = [n for n in self.dtk.nodes]
 
     def get_node(self):
         return self._nodes
@@ -34,38 +37,31 @@ class dtk_class:
             self.dtk.nodes[idx] = self._nodes[idx]
 
     def write(self):
+        sim = self.dtk.simulation
+        sim["infectionSuidGenerator"]['next_suid']['id'] = self.getNextInfectionSuid()
+        self.dtk.simulation = sim
+
         self.dtk.compression = dft.NONE
-#        sim = self.dtk.simulation
-        #    nextInfectionSuid_suid = sim["infectionSuidGenerator"]['next_suid']
-        #    sim["infectionSuidGenerator"]['next_suid']['id'] = nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
-        #sim["infectionSuidGenerator"]['next_suid']['id'] = getNextInfectionSuid( self.dtk)
-        dft.write( self.dtk, "my_dtk_file.dtk")
+#        self.dtk.compressed = False
+        dft.write(self.dtk, "my_dtk_file.dtk")
+
+    def getNextInfectionSuid(self):
+        sim = self.dtk.simulation
+        if not self.nextInfectionSuid_initialized:
+            self.nextInfectionSuid_suid = sim["infectionSuidGenerator"]['next_suid']
+            self.nextInfectionSuid_initialized = True
+        else:
+            self.nextInfectionSuid_suid['id'] = self.nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
+
+        return self.nextInfectionSuid_suid
+
+    def getNextIndividualSuid(self, node_id, handle):
+        suid = self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['next_suid']
+        self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['id'] = suid['id'] + self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['numtasks']
+        return suid['id']
 
 
 
-
-
-def getNextInfectionSuid(handle):
-    global nextInfectionSuid_suid
-    global nextInfectionSuid_initialized
-    sim = handle.simulation
-
-    if not nextInfectionSuid_initialized:
-        nextInfectionSuid_suid = sim["infectionSuidGenerator"]['next_suid']
-#        sim["infectionSuidGenerator"]['next_suid']['id'] = nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
-        nextInfectionSuid_initialized = True
-    else:
-        nextInfectionSuid_suid['id'] = nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
-
-    return nextInfectionSuid_suid
-
-
-def getNextIndividualSuid(node_id, handle):
-    node = handle.nodes[node_id]
-    suid = node["m_IndividualHumanSuidGenerator"]['next_suid']
-    node["m_IndividualHumanSuidGenerator"]['id'] = suid['id'] + node["m_IndividualHumanSuidGenerator"]['numtasks']
-    handle.nodes[node_id] = node
-    return suid['id']
 
 
 def addIndividual(node_id, properties, handle):
@@ -81,13 +77,13 @@ def addIndividual(node_id, properties, handle):
     node = handle.nodes[node_id]
     for individual_props in properties:
         copy_ind = support.SerialObject(handle.nodes[0].individualHumans[0])
-        suid = getNextIndividualSuid(node_id, handle)
+        suid = handle.getNextIndividualSuid(node_id, handle)
         print("suid: ", suid)
         copy_ind.suid['id']=suid
         for prop in individual_props:
             copy_ind[prop] = individual_props[prop]
         node.individualHumans.append(copy_ind)
-    handle.nodes[node_id] = node
+
 
 
 def addIndividuals_sameProperties(node_id, number, properties, handle):
@@ -102,13 +98,12 @@ def addIndividuals_sameProperties(node_id, number, properties, handle):
     node = handle.nodes[node_id]
     for i in range(0, number):
         copy_ind = support.SerialObject(handle.nodes[0].individualHumans[0])
-        suid = getNextIndividualSuid(node_id, handle)
+        suid = handle.getNextIndividualSuid(node_id, handle)
         print("suid: ", suid)
         copy_ind.suid['id'] = suid
         for prop in properties:
             copy_ind[prop] = properties[prop]
         node.individualHumans.append(copy_ind)
-        handle.nodes[node_id] = node
 
 
 def changeSusceptibility(node_id, number_of_ind, properties, handle):
@@ -116,13 +111,11 @@ def changeSusceptibility(node_id, number_of_ind, properties, handle):
     for num in range(0,number_of_ind):
         for prop in properties:
             node.individualHumans[num].susceptibility[prop] = properties[prop]
-        handle.nodes[node_id] = node
 
 
 def removeIndividuals(node_id, number_of_ind, handle):
     node = handle.nodes[node_id]
     del node.individualHumans[0:number_of_ind]
-    handle.nodes[node_id] = node
 
 
 def setIndividualPropertyInfections(node_id, individual_idx, prop_value, handle):
@@ -130,20 +123,11 @@ def setIndividualPropertyInfections(node_id, individual_idx, prop_value, handle)
     for idx in individual_idx:
         for prop in prop_value:
             node['individualHumans'][idx]['infections'][0][prop] = prop_value[prop]
-    handle.nodes[node_id] = node
 
 
 def generatePopulation(prop_value, handle):
     addIndividual(0,prop_value, handle)
 
-
-def write(handle):
-    handle.compression = dft.NONE
-    sim = handle.simulation
-#    nextInfectionSuid_suid = sim["infectionSuidGenerator"]['next_suid']
-#    sim["infectionSuidGenerator"]['next_suid']['id'] = nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
-    sim["infectionSuidGenerator"]['next_suid']['id'] = getNextInfectionSuid(handle)
-    dft.write(handle,"my_dtk_file.dtk")
 
 
 def find(name, handle, currentlevel="dtk.nodes"):
@@ -193,20 +177,16 @@ def printParameters(handle, currentlevel="dtk.nodes"):
 
 def setIndividualProperty(node_id, individual_idx, prop_value, handle):
     """change key value of some individual properties, given as a list of indices."""
-    node = handle.nodes[node_id]
     for idx in individual_idx:
         for prop in prop_value:
-            node['individualHumans'][idx][prop] = prop_value[prop]
-    handle.nodes[node_id] = node
+            handle.nodes[node_id]['individualHumans'][idx][prop] = prop_value[prop]
 
 
 def setPropertyValues_Individual(node_id, param_value, handle):
     """ length of param_value must be equal to number of individuals.
      Every entry in paramvalue is a dict wit one or several key-value pairs."""
-    node = handle.nodes[node_id]
-    for param, ind in zip(param_value, node['individualHumans']):
+    for param, ind in zip(param_value, handle.nodes[node_id]['individualHumans']):
         ind.update(param)
-    handle.nodes[node_id] = node
 
 
 def getPropertyValues_Individual(node_id, handle, property):
@@ -243,26 +223,21 @@ def createInfection(type, suid, kwargs={}):
     return infection
 
 
-def addInfectionToIndividuals_id(node_id, handle, infection, list_ind=None):
-    node = handle.nodes[node_id]
-
+def addInfectionToIndividuals_idx(node_id, handle, infection, list_ind=None):
     for idx in list_ind:
-        infection["suid"] = getNextInfectionSuid(dtk)
-        node.individualHumans[idx].infections.append(infection)
-        print(node.individualHumans[idx])
+        infection["suid"] = handle.getNextInfectionSuid()
+        handle.nodes[node_id].individualHumans[idx].infections.append(infection)
+        print(handle.nodes[node_id].individualHumans[idx])
 
-    handle.nodes[node_id] = node
 
 def addInfectionToIndividuals_fct(node_id, handle, infection, fct=lambda ind: True):
     node = handle.nodes[node_id]
 
     for individual in [n for n in node.individualHumans if fct(n)]:
         print(individual)
-        infection["suid"] = getNextInfectionSuid(dtk)
+        infection["suid"] = handle.getNextInfectionSuid(dtk)
         individual.infections.append(infection)
         print(individual)
-
-    handle.nodes[node_id] = node
 
 
 def getAvailableDistributions():
@@ -292,7 +267,7 @@ def constantDistribution():
 
 def setFile(file):
     global dtk
-    dtk = dft.read(file)
+    dtk = dtk_class(file)
 
 def show(handle):
     print(json.dumps(handle, indent=4))
@@ -319,13 +294,19 @@ if __name__ == "__main__":
 
     # print(find("infection", dtk.nodes[0]))
 
-#    find("age", dtk.nodes)
-
     a = dtk_class(str(path) + '/' + serialized_file)
     show(a.nodes[0].individualHumans[10].m_age)
 
-    for ind in a.nodes[0].individualHumans:
-        ind.m_age = 11
+#    find("age", a.nodes)
+
+#    for ind in a.nodes[0].individualHumans:
+#        ind.m_age = 11
+
+    infection_init = {"duration": 123, "incubation_timer": 456}
+    new_infection1 = createInfection("Generic", a.getNextInfectionSuid(), infection_init)
+    addInfectionToIndividuals_idx(0, a, new_infection1, range(1, 10))
+
+    show(a.nodes[0].individualHumans[5].infections)
 
     a.close()
     a.write()
