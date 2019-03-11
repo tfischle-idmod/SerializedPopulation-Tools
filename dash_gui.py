@@ -125,8 +125,9 @@ def update_output(value):
     fct = getattr(change_serialized_population, value)
     if selected_property == 'infections':
 #        random_ind = random.sample(range(0,1000), 50)
-        new_infection = change_serialized_population.createInfection("Generic", change_serialized_population.getNextInfectionSuid(change_serialized_population.dtk))
 #        change_serialized_population.addInfectionToIndividuals_id(0, change_serialized_population.dtk, new_infection, random_ind)
+
+        new_infection = change_serialized_population.createInfection("Generic", change_serialized_population.getNextInfectionSuid(change_serialized_population.dtk))
         change_serialized_population.addInfectionToIndividuals_fct(0, change_serialized_population.dtk, new_infection, lambda ind: ind["m_age"] > 43500)
 
     else:
