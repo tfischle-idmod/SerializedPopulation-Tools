@@ -10,6 +10,7 @@ import scipy.stats
 import collections
 import pathlib
 import difflib
+import copy
 
 
 
@@ -184,7 +185,7 @@ def addInfectionToIndividuals_fct(handle, infection, fct=lambda ind: True):
 def createIndividual(type, suid, kwargs={}, copy_ind=None):
     individual = None
     if copy_ind is not None:
-        individual = copy_ind
+        individual = copy.deepcopy(copy_ind)
     else:
         if type == "Generic":   # make dependant in sim type?
             with open("individual.json", "r") as file:
@@ -200,10 +201,10 @@ def createIndividual(type, suid, kwargs={}, copy_ind=None):
     return individual
 
 
-def add(path, object, fct=lambda ind: True):
-    """Add an object to the data structure path that fulfill a certain criteria e.g. age"""
+def add(path, sub_path, object, fct=lambda ind: True):
+    """Add an object to the data structure path that fulfills a certain criteria e.g. age"""
     for p in [n for n in path if fct(n)]:
-        path.append(object)
+        p[sub_path].append(copy.deepcopy(object))
 
 
 def getAvailableDistributions():
