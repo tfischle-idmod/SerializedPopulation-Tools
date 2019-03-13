@@ -62,49 +62,6 @@ class dtk_class:
 
 
 
-
-
-# def addIndividual(node_id, properties, handle):
-#     '''
-#     :param node_id: the node individual is added to
-#     :param properties: properties of the individual
-#     :param handle: serialized dtk file
-#     :return:
-#
-#     Adds individuals to a node. The properties of each individual must be given as a list of dictionaries.
-#     For each entry in the property list an individual is added.
-#     '''
-#     node = handle.nodes[node_id]
-#     for individual_props in properties:
-#         copy_ind = support.SerialObject(handle.nodes[0].individualHumans[0])
-#         suid = handle.getNextIndividualSuid(node_id, handle)
-#         print("suid: ", suid)
-#         copy_ind.suid['id']=suid
-#         for prop in individual_props:
-#             copy_ind[prop] = individual_props[prop]
-#         node.individualHumans.append(copy_ind)
-#
-#
-# def addIndividuals_sameProperties(node_id, number, properties, handle):
-#     '''
-#     :param nodes: Node
-#     :param number: number of indiviudals
-#     :param properties: properties of the individuals
-#     :param handle: serialized dtk file
-#
-#     Adds a number of individuals with the same properties to a list of nodes.
-#     '''
-#     node = handle.nodes[node_id]
-#     for i in range(0, number):
-#         copy_ind = support.SerialObject(handle.nodes[0].individualHumans[0])
-#         suid = handle.getNextIndividualSuid(node_id, handle)
-#         print("suid: ", suid)
-#         copy_ind.suid['id'] = suid
-#         for prop in properties:
-#             copy_ind[prop] = properties[prop]
-#         node.individualHumans.append(copy_ind)
-
-
 def removeIndividuals(node_id, number_of_ind, handle):
     node = handle.nodes[node_id]
     del node.individualHumans[0:number_of_ind]
@@ -177,9 +134,7 @@ def createInfection(type, suid, kwargs={}):
 
 def addInfectionToIndividuals_fct(handle, infection, fct=lambda ind: True):
     """Add infection to individuals that fulfill a certain criteria e.g. age"""
-    for individual in [n for n in handle.individualHumans if fct(n)]:
-        print(individual)
-        individual.infections.append(infection)
+    add(handle["individualHumans"], "infections", infection, fct)
 
 
 def createIndividual(type, suid, kwargs={}, copy_ind=None):
