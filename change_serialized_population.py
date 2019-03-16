@@ -109,6 +109,16 @@ def getPropertyValues_Individual(node_id, handle, property):
         return [ind[property] for ind in node.individualHumans]
     return None
 
+def getPropertyValues(handle, property, filter_fct=lambda x: True):
+    """returns list values for property property or if the property is a list, the length of the list"""
+    select_fct = lambda x: x[property]
+    return getPropertyValues2(handle, select_fct=select_fct, filter_fct=filter_fct)
+
+
+def getPropertyValues2(handle, select_fct=lambda x: x, filter_fct=lambda x: True):
+    """returns list values for property property or if the property is a list, the length of the list"""
+    return [select_fct(ind) for ind in handle if filter_fct(ind)]
+
 
 def getIndividualsWithProperty(handle, fct=lambda ind: True):
     """ get all individuals that fulfill a certain condition. Condition is given by fct."""
@@ -245,11 +255,22 @@ if __name__ == "__main__":
     serialized_file = "state-00015.dtk"
 
     # opens and saves all nodes, suid
-    pop = dtk_class(str(path) + '/' + serialized_file)
+    ser_pop = dtk_class(str(path) + '/' + serialized_file)
 
+    fct = lambda ind: len(ind["infections"]) >= 1
+    ind_values = getPropertyValues(ser_pop.nodes[0].individualHumans, "m_age", sub_path="infections", fct=fct)
 
-    print(find("age", pop.nodes))
-    show(pop.nodes[0].individualHumans[10].m_age)
+    print(find("age", ser_pop.nodes))
+    show(ser_pop.nodes[0].individualHumans[10].m_age)
+
+    node0 = ser_pop.nodes[0]
+    ind_values = getPropertyValues(node0.individualHumans, "m_age")
+
+    plt.hist(ind_values, bins=20)
+    plt.title("m_age")
+    plt.xlabel("days")
+    plt.ylabel("number of indivuals")
+    plt.show()
 
 #    print(find("infection", pop.nodes))
 
