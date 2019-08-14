@@ -12,19 +12,19 @@ class AddInfectionTest(unittest.TestCase):
         pass
 
     def test_add_infection(self):
-        dtk_obj = change_serialized_population.dtk_class(str(path) + '/' + serialized_file)
+        dtk_obj = change_serialized_population.SerializedPopulation(str(path) + '/' + serialized_file)
 
         # count existing infections
         number_of_infections = sum( [len(dtk_obj.nodes[0].individualHumans[r].infections) for r in range(3, 10)])
 
         # create infection and add to individuals
         infection_init = {"duration": 123, "incubation_timer": 456}
-        new_infection1 = change_serialized_population.createInfection("Generic", dtk_obj.getNextInfectionSuid(), infection_init)
+       # new_infection1 = change_serialized_population.createInfection( dtk_obj.getNextInfectionSuid(), kwargs=infection_init, from_file="infection.json")
 
         filter_fct = lambda ind: ind.suid.id in range(3,10) # 7, starting from suid.id:3
-        change_serialized_population.addInfectionToIndividuals_fct(dtk_obj.nodes[0], new_infection1, filter_fct)
+        dtk_obj.addInfection(dtk_obj.nodes[0], "infection.json", filter_fct)
 
-        new_number_of_infections = sum( [len(dtk_obj.nodes[0].individualHumans[r].infections) for r in range(2,9)])
+        new_number_of_infections = sum( [len(dtk_obj.nodes[0].individualHumans[r].infections) for r in range(1,7)])
 
         success = number_of_infections + 7 == new_number_of_infections
         self.assertTrue(success, "Error")
@@ -35,7 +35,7 @@ class AddInfectionTest(unittest.TestCase):
 
         # create infection and add to individuals
         infection_init = {"duration": 123, "incubation_timer": 456}
-        new_infection = change_serialized_population.createInfection("Generic", {'suid': {'id': 123}}, infection_init)
+        new_infection = change_serialized_population.createInfection({'suid': {'id': 123}}, from_file="infection.json", kwargs=infection_init)
         list_temp = [dtkFileSupport.SerialObject({"test_list": []}), dtkFileSupport.SerialObject({"test_list": []}) ]
         change_serialized_population.add(list_temp, "test_list", new_infection)
 
@@ -51,15 +51,15 @@ class AddInfectionTest(unittest.TestCase):
 
     def test_add2(self):
         Expected_Number_Added_Infections = 5
-        dtk_obj = change_serialized_population.dtk_class(str(path) + '/' + serialized_file)
+        dtk_obj = change_serialized_population.SerializedPopulation(str(path) + '/' + serialized_file)
 
         # count existing infections
         number_of_infections = sum([len(dtk_obj.nodes[0].individualHumans[r].infections) for r in range(0, 10)])
 
         # create infection and add to individuals
         infection_init = {"duration": 123, "incubation_timer": 456}
-        new_infection = change_serialized_population.createInfection("Generic", dtk_obj.getNextInfectionSuid(),
-                                                                      infection_init)
+        new_infection = change_serialized_population.createInfection(dtk_obj.getNextInfectionSuid(),
+                                                                      kwargs=infection_init, from_file="infection.json")
 
         individual_path = dtk_obj.nodes[0].individualHumans
         filter_fct = lambda ind: ind["m_age"] < 12000 and ind.suid.id in range(3,10)
@@ -73,7 +73,7 @@ class AddInfectionTest(unittest.TestCase):
 
 
     def test_get_setPropertyValues_Individual(self):
-        dtk_obj = change_serialized_population.dtk_class(str(path) + '/' + serialized_file)
+        dtk_obj = change_serialized_population.SerializedPopulation(str(path) + '/' + serialized_file)
 
         new_properties = [{"m_age": 7}] * 1000  # one dict for each individual
 
@@ -86,12 +86,12 @@ class AddInfectionTest(unittest.TestCase):
 
     def test_createIndividual(self):
         New_Age = 3
-        dtk_obj = change_serialized_population.dtk_class(str(path) + '/' + serialized_file)
+        dtk_obj = change_serialized_population.SerializedPopulation(str(path) + '/' + serialized_file)
         number_individuals = len(dtk_obj.nodes[0].individualHumans)
 
         copy_ind = dtk_obj.nodes[0].individualHumans[0]
         kwargs = {"m_age": New_Age}
-        ind = change_serialized_population.createIndividual("Generic", dtk_obj.getNextIndividualSuid(0), copy_ind = copy_ind, kwargs=kwargs )
+        ind = change_serialized_population.createIndividual(dtk_obj.getNextIndividualSuid(0), copy_ind = copy_ind, kwargs=kwargs )
         print(ind)
         dtk_obj.nodes[0].individualHumans.append(ind)
 
