@@ -27,14 +27,14 @@ class AddInfectionTest(unittest.TestCase):
         p = subprocess.call([path_eradication, "-C", "config.json"])
         os.chdir(os.path.normpath("..\.."))
 
-    def test_write(self):
+    def test_infection_suid(self):
         """ Add infection to several individuals check suid of added infections."""
         # load and write
         dtk_obj = change_serialized_population.SerializedPopulation(path_dtk_file)
 
         filter_fct = lambda ind: ind.suid.id in range(0, 10)  # add
         individuals = [ind for ind in dtk_obj.nodes[0].individualHumans if filter_fct(ind)]  # group of individuals
-        assert (len(individuals) > 2, "We want al least three individuals ti check the suid for new infections.")
+        assert (len(individuals) > 2, "We want at least three individuals to check the suid of new infections.")
 
         # add infection to every individual
         new_infection = change_serialized_population.loadInfection(from_file="infection.json")
@@ -51,10 +51,10 @@ class AddInfectionTest(unittest.TestCase):
             self.assertTrue(success, "Error. Suid of infections is not correct.")
             prev_suid = current_suid
 
-        dtk_obj.write(os.path.join(output_dir, "test_write.dtk"))
+        dtk_obj.write(os.path.join(output_dir, "test_infection_suid.dtk"))
 
         # load saved dtk file and check saved suids
-        dtk_obj_changed = change_serialized_population.SerializedPopulation(os.path.join(output_dir, "test_write.dtk"))
+        dtk_obj_changed = change_serialized_population.SerializedPopulation(os.path.join(output_dir, "test_infection_suid.dtk"))
 
         individuals_changed = [ind for ind in dtk_obj_changed.nodes[0].individualHumans if filter_fct(ind)]
 

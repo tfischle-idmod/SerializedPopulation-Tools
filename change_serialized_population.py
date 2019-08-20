@@ -57,7 +57,7 @@ class SerializedPopulation:
     def getNextIndividualSuid(self, node_id):
         suid = self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['next_suid']
         self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['id'] = suid['id'] + self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['numtasks']
-        return suid
+        return dict(suid)
 
     def addInfection(self, node, infection, filter_fct=lambda x: True):
         for idx in range(0, len(node["individualHumans"])):
