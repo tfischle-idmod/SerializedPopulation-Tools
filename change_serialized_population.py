@@ -30,12 +30,14 @@ class SerializedPopulation:
     nodes = property(get_nodes)
 
     def close(self):
+        """ Has to be called to save all the changes made to the node(s)."""
         for idx in range(len(self._nodes)):
             self.dtk.nodes[idx] = self._nodes[idx]
 
     def write(self, output_file="my_sp_file.dtk"):
+        self.close()
         sim = self.dtk.simulation
-        sim["infectionSuidGenerator"]['next_suid']['id'] = self.getNextInfectionSuid()
+        sim["infectionSuidGenerator"]['next_suid'] = self.getNextInfectionSuid()
         self.dtk.simulation = sim
 
         self.dtk.compression = dft.LZ4      #dft.NONE gives an error and dtkFileTools __write_chunks__
@@ -50,43 +52,43 @@ class SerializedPopulation:
         else:
             self.nextInfectionSuid_suid['id'] = self.nextInfectionSuid_suid['id'] + sim["infectionSuidGenerator"]['numtasks']
 
-        return self.nextInfectionSuid_suid
+        return dict(self.nextInfectionSuid_suid)
 
     def getNextIndividualSuid(self, node_id):
         suid = self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['next_suid']
         self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['id'] = suid['id'] + self._nodes[node_id]["m_IndividualHumanSuidGenerator"]['numtasks']
         return suid
 
-    def addInfection(self, node, from_file = None, filter_fct=lambda x: True, kwargs={}):
-        for p in [n for n in node["individualHumans"] if filter_fct(n)]:
-            temp_infection = self.__createInfection(self.getNextInfectionSuid(), from_file, kwargs )
-            #p["infections"].append(copy.deepcopy(temp_infection))
-            p["infections"].append(temp_infection)
-            p.m_is_infected = True
-
-    def __createInfection(self, suid, from_file=None, kwargs={}):
-        infection = None
-        if from_file is not None:
-            try:
-                with open(from_file, "r") as file:
-                    infection = json.load(file)
-            except Exception as ex:
-                print("Could not create infection from file: ", from_file)
-                print(str(ex))
-
-        infection["suid"] = suid
-        infection.update(kwargs.items())
-
-        return infection
+    def addInfection(self, node, infection, filter_fct=lambda x: True):
+        for idx in range(0, len(node["individualHumans"])):
+            if filter_fct(node["individualHumans"][idx]):
+                temp_infection = dict(infection)
+                temp_infection["suid"] = self.getNextInfectionSuid()
+                node["individualHumans"][idx]['infections'].append(temp_infection)
+                node["individualHumans"][idx].m_is_infected = True
 
 
 
+def loadInfection(from_file=None):
+    """returns a dictionary"""
+    if from_file is not None:
+        try:
+            with open(from_file, "r") as file:
+                infection = json.load(file)
+        except Exception as ex:
+            print("Could not create infection from file: ", from_file)
+            print(str(ex))
+    return infection
 
 
-
-def removeIndividuals(node_id, number_of_ind, handle):
+def removeNumberIndividuals(node_id, number_of_ind, handle):
     node = handle.nodes[node_id]
     del node.individualHumans[0:number_of_ind]
+
+
+def removeIndividuals(node_id, handle, remove_fct):
+    node = handle.nodes[node_id]
+    node.individualHumans = [ind for ind in node.individualHumans if not remove_fct(ind)]
 
 
 def changeSusceptibility(node_id, number_of_ind, properties, handle):
@@ -141,22 +143,6 @@ def getIndividualsWithProperty(handle, fct=lambda ind: True):
     """ get all individuals that fulfill a certain condition. Condition is given by fct."""
     individuals = handle.individualHumans
     return [ind for ind in individuals if fct(ind)]
-
-
-def createInfection(suid, from_file=None, kwargs={}):
-    infection = None
-    if from_file is not None:
-        try:
-            with open(from_file, "r") as file:
-                infection = json.load(file)
-        except Exception as ex:
-            print("Could not create infection from file: ", from_file)
-            print(str(ex))
-
-    infection["suid"] = suid
-    infection.update(kwargs.items())
-
-    return infection
 
 
 def addInfectionToIndividuals_fct(handle, infection, fct=lambda ind: True):

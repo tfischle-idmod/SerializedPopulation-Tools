@@ -1,0 +1,1 @@
+{"__class__": "Infection", "suid": {"id": 1}, "duration": 15, "total_duration": 16.7756, "incubation_timer": 0, "infectious_timer": 16.7756, "infectiousness": 0.5, "infectiousnessByRoute": [], "StateChange": 0, "infection_strain": {"antigenID": 0, "geneticID": 0}, "m_is_symptomatic": true, "m_is_newly_symptomatic": false}
