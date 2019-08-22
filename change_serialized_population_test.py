@@ -7,10 +7,10 @@ import os
 import subprocess
 
 serialized_file = "state-00015.dtk"
-output_dir = "output"
+output_dir = os.path.normpath(r".\Dtk_tests\output")
 path_dtk_file = os.path.join(r"Dtk_tests\0_setUp\output", serialized_file)
 
-path_eradication = os.path.normpath(r"C:\Users\tfischle\Github\DtkTrunk_master\Eradication\x64\Release\eradication.exe")
+path_eradication = os.path.normpath(r"C:\Users\tfischle\Github\DtkTrunk\Eradication\x64\Release\eradication.exe")
 path_setUp_dir = os.path.normpath(r".\Dtk_tests\0_setUp")
 
 
@@ -34,7 +34,7 @@ class AddInfectionTest(unittest.TestCase):
 
         filter_fct = lambda ind: ind.suid.id in range(0, 10)  # add
         individuals = [ind for ind in dtk_obj.nodes[0].individualHumans if filter_fct(ind)]  # group of individuals
-        assert (len(individuals) > 2, "We want at least three individuals to check the suid of new infections.")
+        assert len(individuals) > 2, "We want at least three individuals to check the suid of new infections."
 
         # add infection to every individual
         new_infection = change_serialized_population.loadInfection(from_file="infection.json")
@@ -72,11 +72,10 @@ class AddInfectionTest(unittest.TestCase):
 
         dtk_obj = change_serialized_population.SerializedPopulation(path_dtk_file)
 
-        number_individuals_total = len([ind_greater for ind_greater in dtk_obj.nodes[0].individualHumans])
+        number_individuals_total = len([ind for ind in dtk_obj.nodes[0].individualHumans])
 
         remove_fct = lambda ind: ind.m_age > 30000
-        number_individuals_to_be_removed = len(
-            [ind_greater for ind_greater in dtk_obj.nodes[0].individualHumans if ind_greater.m_age > 30000])
+        number_individuals_to_be_removed = len([ind for ind in dtk_obj.nodes[0].individualHumans if remove_fct(ind)])
         change_serialized_population.removeIndividuals(0, dtk_obj, remove_fct)
 
         dtk_obj.write(os.path.join(output_dir, "test_removeIndividuals.dtk"))
@@ -85,9 +84,12 @@ class AddInfectionTest(unittest.TestCase):
             os.path.join(output_dir, "test_removeIndividuals.dtk"))
 
         number_individuals_after_removing = len(dtk_obj_changed.nodes[0].individualHumans)
+        number_check_all_removed = len([ind for ind in dtk_obj.nodes[0].individualHumans if remove_fct(ind)])
         success = number_individuals_total - number_individuals_to_be_removed == number_individuals_after_removing
+        success_all_filtered_removed = number_check_all_removed == 0
 
-        self.assertTrue(success, "Error")
+        self.assertTrue(success, "Error, the new number of individuals does not match expected number.")
+        self.assertTrue(success_all_filtered_removed, "Error. There are still some individuals that match the filter criterium.")
 
     def test_add_infection(self):
         """adds an infection to several individuals"""
