@@ -1,7 +1,6 @@
 import emod_api.serialization.SerializedPopulation
 import copy
 import random
-import emod_api.serialization.dtkFileSupport as dfs
 
 
 def create_synthetic_pop( input_dtk_file, new_total_pop, new_num_infected, new_dtk_file ):
