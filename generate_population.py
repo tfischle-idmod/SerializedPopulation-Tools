@@ -1,6 +1,7 @@
 import emod_api.serialization.SerializedPopulation
 import copy
 import random
+import emod_api.serialization.dtkFileSupport as dfs
 
 
 def create_synthetic_pop( input_dtk_file, new_total_pop, new_num_infected, new_dtk_file ):
@@ -9,6 +10,7 @@ def create_synthetic_pop( input_dtk_file, new_total_pop, new_num_infected, new_d
 
     # delete all individuals
     del ser_pop_in.nodes[0].individualHumans[:]
+    del ser_pop_in.nodes[0].home_individual_ids[:]
 
     infected_individuals = [i for i in ser_pop_temp.nodes[0]['individualHumans'] if i['m_is_infected']]
     random_infected = random.sample(infected_individuals, new_num_infected)
@@ -21,10 +23,12 @@ def create_synthetic_pop( input_dtk_file, new_total_pop, new_num_infected, new_d
     for ind in random_infected:
         ind.suid = ser_pop_in.get_next_individual_suid(0)
         ser_pop_in.nodes[0].individualHumans.append(ind)
+        ser_pop_in.nodes[0].home_individual_ids.append({'key': ind.suid['id'], 'value': ind.suid})
 
     for ind in random_not_infected:
         ind.suid = ser_pop_in.get_next_individual_suid(0)
         ser_pop_in.nodes[0].individualHumans.append(ind)
+        ser_pop_in.nodes[0].home_individual_ids.append({'key': ind.suid['id'], 'value': ind.suid})
 
     # save
     ser_pop_in.write(new_dtk_file)
