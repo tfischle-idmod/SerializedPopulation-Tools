@@ -1,9 +1,7 @@
 import sys
 
 sys.path.append("C:\\Users\\tfischle\\Github\\DtkTrunk_master\\Scripts\\serialization")
-import emod_api.serialization.dtkFileTools as dft
 import emod_api.serialization.SerializedPopulation as sp
-import matplotlib
 import pathlib
 import numpy
 import glob
